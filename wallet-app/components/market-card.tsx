@@ -2,6 +2,7 @@
 
 import { ArrowUp, ArrowDown } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
+import Image from "next/image"
 
 interface MarketCardProps {
   marketName: string
@@ -17,34 +18,11 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
   const [isDragging, setIsDragging] = useState(false)
   const [rotation, setRotation] = useState(0)
   const [isMagnetized, setIsMagnetized] = useState(false)
-  const [timerProgress, setTimerProgress] = useState(0)
   const dragStartX = useRef(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const gainNodeRef = useRef<GainNode | null>(null)
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null)
-  const timerStartRef = useRef<number>(Date.now())
-
-  useEffect(() => {
-    // Timer animation - 2 minutes (120 seconds)
-    const ROUND_DURATION = 120000 // 2 minutes in milliseconds
-
-    const updateTimer = () => {
-      const elapsed = Date.now() - timerStartRef.current
-      const progress = Math.min((elapsed / ROUND_DURATION) * 100, 100)
-      setTimerProgress(progress)
-
-      if (progress >= 100) {
-        // Reset timer for next round
-        timerStartRef.current = Date.now()
-        onTimerReset() // Clear swipe tracking for new round
-      }
-    }
-
-    const interval = setInterval(updateTimer, 50) // Update every 50ms for smooth animation
-
-    return () => clearInterval(interval)
-  }, [onTimerReset])
 
   useEffect(() => {
     // Initialize audio on client side with mobile-friendly settings and volume boost
@@ -97,14 +75,13 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
   const cards = [currentCardId, currentCardId + 1, currentCardId + 2]
 
   const handleDragStart = (clientX: number) => {
-    if (isSwipeBlocked) return
     setIsDragging(true)
     setIsMagnetized(false)
     dragStartX.current = clientX
   }
 
   const handleDragMove = (clientX: number) => {
-    if (!isDragging || isMagnetized || isSwipeBlocked) return
+    if (!isDragging || isMagnetized) return
     const rawOffset = clientX - dragStartX.current
     const dragCoefficient = 0.5
     const offset = rawOffset * dragCoefficient
@@ -164,27 +141,8 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
   const iconOpacity = Math.min(Math.abs(dragOffset) / 80, 0.6)
   const iconScale = Math.min(Math.abs(dragOffset) / 80, 1)
 
-  // Calculate if we're in the shake period (60-100 seconds, or 50%-83.33% of timer)
-  const isShakePeriod = timerProgress >= 50 && timerProgress < 83.33
-
-  // Block swiping after 100 seconds (83.33% of 120 seconds) OR if already swiped this round
-  const isSwipeBlocked = timerProgress >= 83.33 || hasSwipedThisRound
-
   return (
     <div className="relative h-full w-full overflow-hidden select-none">
-      {/* Swipe Blocked Warning */}
-      {isSwipeBlocked && (
-        <div className="absolute inset-0 z-[20] flex items-center justify-center pointer-events-none">
-          <div className="bg-black bg-opacity-60 backdrop-blur-sm rounded-2xl px-6 py-4 mx-4">
-            <p className="text-yellow-400 font-bold text-lg sm:text-xl text-center">
-              {hasSwipedThisRound ? "Already Swiped" : "Round Closed"}
-            </p>
-            <p className="text-white text-sm sm:text-base text-center mt-1 opacity-90">
-              {hasSwipedThisRound ? "One swipe per round" : "Wait for next round"}
-            </p>
-          </div>
-        </div>
-      )}
       {/* Swipe Feedback Icons */}
       {dragOffset > 0 && (
         <div
@@ -237,7 +195,7 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
                 : 'all 0.6s cubic-bezier(0.4, 0.0, 0.2, 1)',
               zIndex: 10 - index,
               opacity: opacity,
-              cursor: isTopCard ? (isSwipeBlocked ? 'not-allowed' : (isDragging ? 'grabbing' : 'grab')) : 'default',
+              cursor: isTopCard ? (isDragging ? 'grabbing' : 'grab') : 'default',
             }}
             onMouseDown={isTopCard ? (e) => handleDragStart(e.clientX) : undefined}
             onMouseMove={isTopCard ? (e) => handleDragMove(e.clientX) : undefined}
@@ -249,86 +207,22 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
           >
         {/* Header Spacer */}
         <div
-          className="mb-4 sm:mb-6"
+          className="mb-2 sm:mb-3"
           style={{
             height: 'calc(3rem + env(safe-area-inset-top, 0px))',
           }}
         />
 
-        {/* Wallet Value */}
-        <div className="mb-4 sm:mb-6">
-          <p className="text-black opacity-90 mb-1 sm:mb-2 text-3xl sm:text-4xl md:text-5xl">{marketName}/USD</p>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black">$41,812.14</h2>
-        </div>
-
-        {/* Time Period Selector */}
-
-
-        {/* Chart Area */}
-        <div className="flex-1 mb-4 sm:mb-6 relative">
-          <div className="absolute inset-0 flex items-end justify-center gap-0.5">
-            {Array.from({ length: 60 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex-1 bg-yellow-500 opacity-60 rounded-t"
-                style={{
-                  height: `${Math.sin(i / 10) * 30 + 40}%`,
-                }}
-              />
-            ))}
-          </div>
-          {/* Trend line */}
-          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-            <polyline
-              points={Array.from({ length: 60 })
-                .map((_, i) => `${(i / 59) * 100}% ${100 - (Math.sin(i / 10) * 30 + 40)}%`)
-                .join(" ")}
-              fill="none"
-              stroke="rgba(0, 0, 0, 0.8)"
-              strokeWidth="2"
-            />
-          </svg>
-        </div>
-
-        {/* Profit/Loss Info */}
-        <div
-          className={`bg-yellow-500 rounded-xl sm:rounded-2xl p-4 sm:p-5 mb-4 sm:mb-6 relative overflow-hidden ${
-            isShakePeriod ? 'animate-shake' : ''
-          }`}
-        >
-          {/* Timer Overlay - Fills from left to right over 2 minutes */}
-          <div
-            className="absolute inset-0 bg-black pointer-events-none transition-all duration-75 ease-linear"
-            style={{
-              width: `${timerProgress}%`,
-              opacity: 0.15,
-            }}
+        {/* Image Area */}
+        <div className="flex-1 mb-1 sm:mb-1.5 relative overflow-hidden rounded-2xl sm:rounded-3xl">
+          <Image
+            src="/image.png"
+            alt="Profile"
+            fill
+            className="object-cover"
+            priority
           />
-
-          <div className="relative z-10">
-            <div className="mb-4 sm:mb-5">
-              <p className="text-black text-xs sm:text-sm opacity-75 mb-1">NEXT ROUND</p>
-              <p className="text-black font-bold text-2xl sm:text-3xl">147 CELO</p>
-              <p className="text-black text-xs sm:text-sm opacity-60">PRIZE POOL</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 sm:gap-6">
-              <div>
-                <p className="text-black text-xs sm:text-sm opacity-75 mb-1">Down</p>
-                <p className="font-bold text-3xl sm:text-4xl" style={{ color: '#ed4b9e' }}>1.5x</p>
-                <p className="text-black text-[10px] sm:text-xs opacity-60">payout</p>
-              </div>
-              <div className="text-right">
-                <p className="text-black text-xs sm:text-sm opacity-75 mb-1">Up</p>
-                <p className="font-bold text-3xl sm:text-4xl" style={{ color: '#2e8656' }}>2.5x</p>
-                <p className="text-black text-[10px] sm:text-xs opacity-60">payout</p>
-              </div>
-            </div>
-          </div>
         </div>
-
-        {/* Recent Transaction */}
-
 
         {/* Bottom Navigation Spacer */}
         <div

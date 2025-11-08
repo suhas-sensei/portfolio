@@ -94,26 +94,20 @@ export default function WalletValue() {
           <div
             className="absolute z-50 flex items-center justify-between pointer-events-none"
             style={{
-              top: 'calc(2rem + env(safe-area-inset-top, 0px))',
-              left: '2rem',
-              right: '2rem',
+              top: 'calc(3.2rem + env(safe-area-inset-top, 0px))',
+              left: '3rem',
+              right: '2.7rem',
             }}
           >
             <div className="pointer-events-auto">
-              <Image
-                src="/bobasoda-logo.png"
-                alt="BobaSoda"
-                width={150}
-                height={50}
-                className="h-10 sm:h-12 w-auto"
-              />
+              <h1 className="text-2xl sm:text-3xl font-bold text-black">Portfolio</h1>
             </div>
             <div className="flex gap-2 sm:gap-3 pointer-events-auto">
               <button className="p-1.5 sm:p-2 hover:bg-yellow-500 rounded-full transition">
-                <Search className="w-4 h-4 sm:w-5 sm:h-5 text-black opacity-75" />
+                <Search className="w-5 h-5 sm:w-6 sm:h-6 text-black opacity-75" />
               </button>
               <button className="p-1.5 sm:p-2 hover:bg-yellow-500 rounded-full transition">
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-black opacity-75" />
+                <Bell className="w-5 h-5   sm:w-6 sm:h-6 text-black opacity-75" />
               </button>
             </div>
           </div>
